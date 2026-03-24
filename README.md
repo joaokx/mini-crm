@@ -49,6 +49,29 @@ Espera-se testes de integração cobrindo os fluxos principais da API. Ao menos:
 
 O ambiente completo deve subir com um único `docker compose up`.
 
+## Configuração de Variáveis de Ambiente (.env)
+
+O projeto requer a criação de arquivos `.env` tanto no diretório `client` quanto no diretório `server` para seu correto funcionamento. Crie esses arquivos e os preencha conforme os exemplos abaixo:
+
+### Cliente (`client/.env`)
+O frontend utiliza Vite, portanto as variáveis de ambiente devem ser prefixadas com `VITE_`.
+
+```env
+VITE_API_URL=http://localhost:3000/api
+```
+
+### Servidor (`server/.env`)
+O backend requer configurações para o banco de dados e a porta de execução.
+
+```env
+DB_PROVIDER=sqlite
+DATABASE_URL=file:./dev.db
+PORT=3000
+NODE_ENV=development
+```
+
+> **Nota:** Caso opte por utilizar PostgreSQL ao invés do SQLite padrão (como recomendado na seção Stack), os valores de `DB_PROVIDER` e `DATABASE_URL` no `.env` do servidor deverão ser ajustados para a referida conexão com o PostgreSQL.
+
 ## Organização & README
 
 Estrutura de projeto livre. Espera-se que outro dev entenda a arquitetura e consiga rodar o projeto apenas lendo o README.
