@@ -1,96 +1,157 @@
-# Projeto: Mini CRM de Atendimento
+# Mini CRM de Atendimento
 
-> ⏱ Duração estimada: 3-4h
-
-## Contexto
-
-Secretárias de clínicas gerenciam solicitações de pacientes e acompanham atendimentos no dia a dia. O objetivo é construir uma versão simplificada desse fluxo.
-
-O foco não é um produto completo, mas sim demonstrar capacidade de estruturar uma aplicação simples de forma limpa e consistente.
+Sistema de gestão de atendimentos para secretárias de clínicas, permitindo cadastro de pacientes e acompanhamento do ciclo de vida dos atendimentos.
 
 ## Funcionalidades
 
-- Cadastrar pacientes
-- Registrar atendimentos vinculados a um paciente
-- Visualizar atendimentos em lista
-- Atualizar o status de um atendimento
-- Editar ou excluir atendimentos
-
-## Entidades
-
-O sistema opera sobre duas entidades: Paciente (nome, telefone) e Atendimento (vinculado a um paciente, com descrição e status). A modelagem completa (campos adicionais, tipos e relacionamentos) fica deliberadamente a critério do candidato. As escolhas feitas aqui serão avaliadas.
-
-## Regras de Negócio
-
-Atendimentos são criados sempre com status `AGUARDANDO`. A transição segue a sequência abaixo, sem retrocesso nem salto de etapas:
-
-```
-AGUARDANDO → EM_ATENDIMENTO → FINALIZADO
-```
-
-## Frontend
-
-A interface deve permitir executar todas as funcionalidades listadas acima. Design elaborado não é exigido; qualidade de UX é diferencial. A organização de telas e componentes fica a critério do candidato.
-
-## Backend
-
-API com os endpoints necessários para suportar as operações acima. Nomenclatura e estrutura de rotas ficam a critério do candidato.
-
-Espera-se testes de integração cobrindo os fluxos principais da API. Ao menos: criação de atendimento, tentativa de transição inválida de status (deve retornar erro), e sequência completa de transição até `FINALIZADO`.
+- Autenticação com JWT (login/registro)
+- Cadastro, edição e exclusão de pacientes
+- Registro de atendimentos vinculados a pacientes
+- Transição de status: `AGUARDANDO → EM_ATENDIMENTO → FINALIZADO`
+- Filtro por status e paginação na lista de atendimentos
+- Dashboard com métricas e gráficos
+- Busca de pacientes por nome ou telefone
 
 ## Stack
 
-| Camada   | Tecnologia                                  |
-| -------- | ------------------------------------------- |
-| Frontend | React (preferencial) ou Vue.js, JS ou TS   |
-| Backend  | Node.js ou Python                           |
-| Banco    | PostgreSQL                                  |
-| Infra    | Docker + Docker Compose                     |
+| Camada   | Tecnologia                        |
+|----------|-----------------------------------|
+| Frontend | React 18 + TypeScript + Vite      |
+| Backend  | Node.js + Express + TypeScript    |
+| Banco    | SQLite (via Prisma ORM)           |
+| Infra    | Docker + Docker Compose           |
 
-O ambiente completo deve subir com um único `docker compose up`.
+## Demo online
 
-## Configuração de Variáveis de Ambiente (.env)
+| Serviço   | URL                                       |
+|-----------|-------------------------------------------|
+| Frontend  | https://mini-crm-idof.onrender.com        |
+| Backend   | https://mini-crm-2-71ff.onrender.com      |
 
-O projeto requer a criação de arquivos `.env` tanto no diretório `client` quanto no diretório `server` para seu correto funcionamento. Crie esses arquivos e os preencha conforme os exemplos abaixo:
+**Credenciais para teste:**
+- Email: `admin@yoog.com.br`
+- Senha: `123456`
 
-### Cliente (`client/.env`)
-O frontend utiliza Vite, portanto as variáveis de ambiente devem ser prefixadas com `VITE_`.
+> O backend está hospedado no plano gratuito do Render e pode demorar ~30s para responder na primeira requisição (cold start).
 
-```env
-VITE_API_URL=http://localhost:3000/api
+## Como executar
+
+### Pré-requisitos
+
+- [Docker](https://www.docker.com/) e Docker Compose instalados
+
+### Com Docker (recomendado)
+
+```bash
+docker compose up --build
 ```
 
-### Servidor (`server/.env`)
-O backend requer configurações para o banco de dados e a porta de execução.
+O comando irá:
+1. Construir as imagens do frontend e backend
+2. Executar as migrações do banco de dados
+3. Popular o banco com dados de exemplo (seed)
+4. Iniciar os servidores
 
+| Serviço   | URL                    |
+|-----------|------------------------|
+| Frontend  | http://localhost:5173  |
+| Backend   | http://localhost:3000  |
+
+**Credenciais de acesso:**
+- Email: `admin@yoog.com.br`
+- Senha: `123456`
+
+### Sem Docker (desenvolvimento local)
+
+**Backend:**
+
+```bash
+cd server
+cp .env.example .env   # ou crie manualmente (ver abaixo)
+npm install
+npx prisma migrate dev
+npx tsx seed.ts
+npm run dev
+```
+
+**Frontend:**
+
+```bash
+cd client
+cp .env.example .env   # ou crie manualmente (ver abaixo)
+npm install
+npm run dev
+```
+
+### Variáveis de ambiente
+
+**`server/.env`**
 ```env
-DB_PROVIDER=sqlite
 DATABASE_URL=file:./dev.db
+JWT_SECRET=sua-chave-secreta
 PORT=3000
 NODE_ENV=development
 ```
 
-> **Nota:** Caso opte por utilizar PostgreSQL ao invés do SQLite padrão (como recomendado na seção Stack), os valores de `DB_PROVIDER` e `DATABASE_URL` no `.env` do servidor deverão ser ajustados para a referida conexão com o PostgreSQL.
+**`client/.env`**
+```env
+VITE_API_URL=http://localhost:3000/api
+```
 
-## Organização & README
+### Executar testes
 
-Estrutura de projeto livre. Espera-se que outro dev entenda a arquitetura e consiga rodar o projeto apenas lendo o README.
+```bash
+cd server
+npm test
+```
 
-O README deve conter uma seção de decisões de arquitetura cobrindo: escolhas de estrutura de projeto, o que foi deliberadamente deixado de fora e por quê, e qualquer tradeoff relevante feito durante o desenvolvimento.
+## Arquitetura
 
-## Critérios de Avaliação
+### Backend — Arquitetura em camadas
 
-- Clareza da arquitetura
-- Qualidade e legibilidade do código
-- Separação de responsabilidades
-- Integração frontend/backend
-- Presença e qualidade do teste automatizado
-- Clareza das instruções de execução
+```
+src/
+├── controllers/   # Recebe requisição, valida input, chama service, retorna resposta
+├── services/      # Regras de negócio (ex: validação de transição de status)
+├── repositories/  # Acesso ao banco de dados via Prisma
+├── routes/        # Definição de rotas e vinculação com controllers
+├── schemas/       # Schemas de validação com Zod
+├── middlewares/   # Autenticação JWT
+└── tests/         # Testes de integração com Supertest
+```
 
-## Diferenciais (Opcional)
+Cada camada tem responsabilidade única. Controllers não conhecem Prisma; services não conhecem HTTP. Isso facilita testes e manutenção.
 
-- Validação de dados nas entradas da API
-- Paginação ou filtros na lista de atendimentos
-- Migrações de banco versionadas
-- Logs ou tratamento de erros estruturado
-- Testes adicionais além do mínimo
+### Frontend — Organização por páginas
+
+```
+src/
+├── pages/       # Uma página por domínio (Dashboard, Patients, Services, Login)
+├── components/  # Componentes reutilizáveis (Toast)
+├── contexts/    # Estado global de autenticação
+└── services/    # Cliente HTTP (Axios) com interceptors para token e 401
+```
+
+### Banco de dados
+
+Prisma com SQLite em desenvolvimento. As migrações são versionadas em `server/prisma/migrations/` e aplicadas automaticamente ao subir o container.
+
+## Decisões de arquitetura
+
+**SQLite em vez de PostgreSQL**
+O enunciado sugere PostgreSQL, mas SQLite foi adotado para simplificar o setup local (zero dependências externas, um único `docker compose up`). A troca para PostgreSQL exige apenas alterar `provider` no `schema.prisma` e a `DATABASE_URL` — o restante do código não muda.
+
+**Validação com Zod**
+Schemas de validação declarativos na camada de entrada da API. Erros de validação são capturados pelo middleware global e retornam 400 com array de erros estruturados — sem `if/else` espalhados nos controllers.
+
+**Transição de status como máquina de estados**
+A lógica de transição (`AGUARDANDO → EM_ATENDIMENTO → FINALIZADO`) está isolada em `ServiceService`. Qualquer violação lança um erro descritivo que sobe até o middleware de erro e retorna 400. Isso garante que a regra de negócio não vaze para o controller ou repositório.
+
+**Testes de integração, não unitários**
+Os testes sobem o app real com banco SQLite em memória e fazem requisições HTTP via Supertest. Isso garante que toda a pilha (validação → controller → service → repository → banco) funciona de ponta a ponta, sem mocks que podem mascarar bugs de integração.
+
+**O que foi deixado de fora**
+- Rate limiting na API (não necessário para o escopo)
+- Edição de atendimentos além do status (o enunciado não exige)
+- Autenticação no frontend além de login (registro é interno/seed)
+- Testes de frontend (fora do escopo pedido)

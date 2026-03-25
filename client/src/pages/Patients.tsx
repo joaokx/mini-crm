@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { patientApi } from '../services/api';
-import { Plus, Edit, Trash2, Search, Phone, User as UserIcon, MessageCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Phone, User as UserIcon, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../components/Toast';
 
 interface Patient {
@@ -10,39 +10,46 @@ interface Patient {
     createdAt: string;
 }
 
+interface Meta {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+}
+
 const Patients: React.FC = () => {
     const { toast } = useToast();
     const [patients, setPatients] = useState<Patient[]>([]);
+    const [meta, setMeta] = useState<Meta>({ total: 0, page: 1, limit: 10, pages: 1 });
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
     const [formData, setFormData] = useState({ name: '', phone: '' });
 
-    // Add debounce search
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const debounceTimeoutInfo = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        // Clear previous timeout
         if (debounceTimeoutInfo.current) {
             clearTimeout(debounceTimeoutInfo.current);
         }
 
         setLoading(true);
-        // Set new timeout for debounce API call
         debounceTimeoutInfo.current = setTimeout(() => {
-            fetchPatients(searchQuery);
+            fetchPatients(searchQuery, currentPage);
         }, 500);
 
         return () => {
             if (debounceTimeoutInfo.current) clearTimeout(debounceTimeoutInfo.current);
         };
-    }, [searchQuery]);
+    }, [searchQuery, currentPage]);
 
-    const fetchPatients = async (searchTerm = '') => {
+    const fetchPatients = async (searchTerm = '', page = 1) => {
         try {
-            const response = await patientApi.getAll({ search: searchTerm });
+            const response = await patientApi.getAll({ search: searchTerm, page, limit: 10 });
             setPatients(response.data.data || []);
+            setMeta(response.data.meta || { total: 0, page: 1, limit: 10, pages: 1 });
         } catch (error) {
             console.error('Error fetching patients:', error);
             toast('Erro ao buscar pacientes', 'error');
@@ -64,7 +71,7 @@ const Patients: React.FC = () => {
             setIsModalOpen(false);
             setEditingPatient(null);
             setFormData({ name: '', phone: '' });
-            fetchPatients(searchQuery);
+            fetchPatients(searchQuery, currentPage);
         } catch (error) {
             console.error('Error saving patient:', error);
             toast('Erro ao salvar paciente', 'error');
@@ -82,7 +89,7 @@ const Patients: React.FC = () => {
             try {
                 await patientApi.delete(id);
                 toast('Paciente excluído!', 'success');
-                fetchPatients(searchQuery);
+                fetchPatients(searchQuery, currentPage);
             } catch (error) {
                 console.error('Error deleting patient:', error);
                 toast('Erro ao excluir paciente', 'error');
@@ -179,6 +186,35 @@ const Patients: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            {meta.pages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                        Mostrando {patients.length} de {meta.total} pacientes
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button
+                            className="btn btn-outline"
+                            style={{ padding: '0.375rem 0.75rem' }}
+                            disabled={meta.page <= 1}
+                            onClick={() => setCurrentPage(p => p - 1)}
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <span style={{ fontSize: '0.875rem' }}>
+                            {meta.page} / {meta.pages}
+                        </span>
+                        <button
+                            className="btn btn-outline"
+                            style={{ padding: '0.375rem 0.75rem' }}
+                            disabled={meta.page >= meta.pages}
+                            onClick={() => setCurrentPage(p => p + 1)}
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {isModalOpen && (
                 <div className="modal-overlay">
